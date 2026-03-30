@@ -113,22 +113,22 @@ INSERT INTO employees (first_name, last_name, email, title, salary, hire_date, d
 -- ============================================================
 -- Projects (15 total — projects 14 and 15 have 0 assignments)
 -- ============================================================
-INSERT INTO projects (name, start_date, end_date, budget) VALUES
-('Customer Portal Redesign',       '2023-01-10', '2023-06-30', 250000.00),
-('Data Warehouse Migration',       '2023-03-01', '2023-12-15', 400000.00),
-('Mobile App Launch',              '2023-06-01', '2024-01-31', 320000.00),
-('Marketing Automation Platform',  '2023-09-15', '2024-03-31', 180000.00),
-('AI Recommendation Engine',       '2024-01-01', '2024-08-30', 500000.00),
-('ERP System Upgrade',             '2024-02-15', '2024-09-30', 350000.00),
-('Regional Expansion Analytics',   '2024-04-01', '2024-10-31', 220000.00),
-('Cloud Infrastructure Migration', '2024-06-01', '2025-01-31', 450000.00),
-('Employee Training Portal',       '2024-08-01', '2025-03-31', 150000.00),
-('Supply Chain Optimization',      '2024-09-15', '2025-04-30', 280000.00),
-('Cybersecurity Audit',            '2024-11-01', '2025-02-28', 120000.00),
-('API Gateway Redesign',           '2025-01-01', '2025-06-30', 190000.00),
-('Customer Feedback Analytics',    '2025-01-15', NULL,         160000.00),
-('Blockchain Pilot',               '2025-03-01', NULL,         300000.00),
-('Quantum Computing Research',     '2025-04-01', NULL,         500000.00);
+INSERT INTO projects (name, start_date, end_date, budget, department_id) VALUES
+('Customer Portal Redesign',       '2023-01-10', '2023-06-30', 250000.00, 1),
+('Data Warehouse Migration',       '2023-03-01', '2023-12-15', 400000.00, 1),
+('Mobile App Launch',              '2023-06-01', '2024-01-31', 320000.00, 1),
+('Marketing Automation Platform',  '2023-09-15', '2024-03-31', 180000.00, 2),
+('AI Recommendation Engine',       '2024-01-01', '2024-08-30', 500000.00, 7),
+('ERP System Upgrade',             '2024-02-15', '2024-09-30', 350000.00, 6),
+('Regional Expansion Analytics',   '2024-04-01', '2024-10-31', 220000.00, 7),
+('Cloud Infrastructure Migration', '2024-06-01', '2025-01-31', 450000.00, 1),
+('Employee Training Portal',       '2024-08-01', '2025-03-31', 150000.00, 4),
+('Supply Chain Optimization',      '2024-09-15', '2025-04-30', 280000.00, 6),
+('Cybersecurity Audit',            '2024-11-01', '2025-02-28', 120000.00, 1),
+('API Gateway Redesign',           '2025-01-01', '2025-06-30', 190000.00, 1),
+('Customer Feedback Analytics',    '2025-01-15', NULL,         160000.00, 2),
+('Blockchain Pilot',               '2025-03-01', NULL,         300000.00, 7),
+('Quantum Computing Research',     '2025-04-01', NULL,         500000.00, 7);
 
 -- ============================================================
 -- Project Assignments (80 total)
