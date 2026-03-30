@@ -192,4 +192,160 @@ FROM employees e
 JOIN employee_certifications ec ON e.employee_id = ec.employee_id
 JOIN certifications c ON ec.certification_id = c.certification_id
 ORDER BY e.last_name, e.first_name, ec.certification_date;
+-- ============================================================
+-- CHALLENGE BEGINS HERE
+-- ============================================================
 
+-- Ensure projects table has department_id column
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES departments(department_id);
+
+-- Update existing projects with department assignments if not already set
+UPDATE projects SET department_id = 1 WHERE name IN ('Customer Portal Redesign', 'Data Warehouse Migration', 'Mobile App Launch', 'Cloud Infrastructure Migration', 'Cybersecurity Audit', 'API Gateway Redesign') AND department_id IS NULL;
+UPDATE projects SET department_id = 2 WHERE name IN ('Marketing Automation Platform', 'Customer Feedback Analytics') AND department_id IS NULL;
+UPDATE projects SET department_id = 4 WHERE name IN ('Employee Training Portal') AND department_id IS NULL;
+UPDATE projects SET department_id = 6 WHERE name IN ('ERP System Upgrade', 'Supply Chain Optimization') AND department_id IS NULL;
+UPDATE projects SET department_id = 7 WHERE name IN ('AI Recommendation Engine', 'Regional Expansion Analytics', 'Blockchain Pilot', 'Quantum Computing Research') AND department_id IS NULL;
+
+
+-- Q10 — At-Risk Projects
+SELECT
+    p.name AS project_name,
+    p.budget AS budget_hours,
+    COALESCE(SUM(pa.hours_allocated), 0) AS total_allocated_hours,
+    ROUND(COALESCE(SUM(pa.hours_allocated), 0) / p.budget * 100, 2) AS pct_allocated
+FROM projects p
+LEFT JOIN project_assignments pa ON p.project_id = pa.project_id
+GROUP BY p.project_id, p.name, p.budget
+HAVING COALESCE(SUM(pa.hours_allocated), 0) > 0.8 * p.budget
+ORDER BY pct_allocated DESC;
+
+-- Q11 — Employees on Projects Outside Their Department
+SELECT
+    e.first_name,
+    e.last_name,
+    e.department_id AS employee_dept,
+    d.name AS employee_department,
+    p.name AS project_name,
+    p.department_id AS project_dept,
+    pd.name AS project_department
+FROM project_assignments pa
+JOIN employees e ON pa.employee_id = e.employee_id
+JOIN departments d ON e.department_id = d.department_id
+JOIN projects p ON pa.project_id = p.project_id
+JOIN departments pd ON p.department_id = pd.department_id
+WHERE e.department_id <> p.department_id
+ORDER BY e.last_name, e.first_name;
+
+-- Q12 — Department Summary View
+CREATE OR REPLACE VIEW department_summary AS
+SELECT
+    d.name AS department_name,
+    COUNT(e.employee_id) AS employee_count,
+    COALESCE(SUM(e.salary), 0) AS total_salary,
+    ROUND(AVG(e.salary), 2) AS avg_salary
+FROM departments d
+LEFT JOIN employees e ON d.department_id = e.department_id
+GROUP BY d.department_id, d.name;
+
+SELECT * FROM department_summary;
+
+-- Q13 — Project Status View
+CREATE OR REPLACE VIEW project_status AS
+SELECT
+    p.project_id,
+    p.name AS project_name,
+    p.budget,
+    COALESCE(SUM(pa.hours_allocated), 0) AS total_allocated_hours,
+    ROUND(
+        COALESCE(SUM(pa.hours_allocated), 0) / p.budget * 100,
+        2
+    ) AS utilization_pct
+FROM projects p
+LEFT JOIN project_assignments pa ON p.project_id = pa.project_id
+GROUP BY p.project_id, p.name, p.budget;
+SELECT * FROM project_status ORDER BY utilization_pct DESC;
+
+-- materialized view
+DROP MATERIALIZED VIEW IF EXISTS department_summary_mat;
+CREATE MATERIALIZED VIEW department_summary_mat AS
+SELECT
+    d.department_id,
+    d.name AS department_name,
+    COUNT(e.employee_id) AS employee_count,
+    SUM(e.salary) AS total_salary
+FROM departments d
+LEFT JOIN employees e ON d.department_id = e.department_id
+GROUP BY d.department_id, d.name;
+
+SELECT * FROM department_summary_mat;
+
+-- Q14 — Refresh Materialized View
+REFRESH MATERIALIZED VIEW department_summary_mat;
+
+-- function using department name
+CREATE OR REPLACE FUNCTION get_department_insights_by_name(dept_name TEXT)
+RETURNS JSON AS
+$$
+DECLARE result JSON;
+BEGIN
+    SELECT json_build_object(
+        'department_name', d.name,
+        'employee_count', COUNT(e.employee_id),
+        'total_salary', COALESCE(SUM(e.salary), 0),
+        'active_projects', COUNT(DISTINCT p.project_id)
+    )
+    INTO result
+    FROM departments d
+    LEFT JOIN employees e ON d.department_id = e.department_id
+    LEFT JOIN projects p ON d.department_id = p.department_id
+    WHERE d.name = dept_name
+    GROUP BY d.department_id, d.name;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_department_insights_by_name('Engineering');
+
+
+-- salary_history table
+DROP TABLE IF EXISTS salary_history CASCADE;
+CREATE TABLE salary_history (
+    history_id SERIAL PRIMARY KEY,
+    employee_id INT REFERENCES employees(employee_id),
+    salary NUMERIC(10,2),
+    effective_date DATE
+);
+-- example seed (repeat pattern for more employees)
+INSERT INTO salary_history (employee_id, salary, effective_date) VALUES
+(1, 50000, '2023-01-01'),
+(1, 55000, '2024-01-01'),
+(1, 60000, '2025-01-01'),
+
+(2, 70000, '2023-01-01'),
+(2, 75000, '2024-01-01'),
+(2, 80000, '2025-01-01');
+
+-- migration: initial load from employees
+INSERT INTO salary_history (employee_id, salary, effective_date)
+SELECT employee_id, salary, CURRENT_DATE
+FROM employees;
+
+SELECT
+    d.name AS department_name,
+    ROUND(
+        (MAX(sh.salary) - MIN(sh.salary)) / MIN(sh.salary) * 100,
+        2
+    ) AS growth_pct
+FROM salary_history sh
+JOIN employees e ON sh.employee_id = e.employee_id
+JOIN departments d ON e.department_id = d.department_id
+GROUP BY d.name;
+SELECT
+    e.first_name,
+    e.last_name,
+    MAX(sh.effective_date) AS last_update
+FROM employees e
+JOIN salary_history sh ON e.employee_id = sh.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+HAVING MAX(sh.effective_date) < CURRENT_DATE - INTERVAL '12 months';

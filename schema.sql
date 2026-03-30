@@ -40,7 +40,8 @@ CREATE TABLE projects (
     name            VARCHAR(150) NOT NULL,
     start_date      DATE         NOT NULL,
     end_date        DATE,
-    budget          NUMERIC(12,2) NOT NULL CHECK (budget >= 0)
+    budget          NUMERIC(12,2) NOT NULL CHECK (budget >= 0),
+    department_id   INTEGER      NOT NULL REFERENCES departments(department_id)
 );
 
 -- ============================================================
